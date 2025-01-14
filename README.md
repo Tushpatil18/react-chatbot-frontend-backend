@@ -91,4 +91,4 @@ Before running this project, make sure you have the following installed:
 
 ### Output
 
-<img src="output.png" width="60%"/>
+<img src="screenshot.png" width="60%"/>
