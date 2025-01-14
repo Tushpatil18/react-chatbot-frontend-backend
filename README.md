@@ -80,11 +80,11 @@ Before running this project, make sure you have the following installed:
    npm start
    ```
 
-   The frontend will be running on http://localhost:3000.
+   The frontend will be running on http://localhost:3100.
 
 ### Testing the Application
 
-- Open http://localhost:3000 in your browser.
+- Open http://localhost:3100 in your browser.
 - Type a message in the input field and press "Send".
 - The bot will reply with a predefined response, and the conversation will be stored in the MongoDB database.
 - You can refresh the page to see the entire conversation.
