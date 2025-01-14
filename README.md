@@ -91,4 +91,4 @@ Before running this project, make sure you have the following installed:
 
 ### Output
 
-![alt output](output.png)
+<img src="output.png" width="60%"/>
