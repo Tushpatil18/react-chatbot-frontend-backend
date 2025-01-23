@@ -1,4 +1,3 @@
-// src/Chatbot.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 const marked = require('marked');
@@ -9,8 +8,10 @@ const Chatbot = () => {
 
   useEffect(() => {
     // Fetch previous messages from the backend
-    axios.get('http://localhost:3000/api/messages')
+    axios.get('http://localhost:5001/api/messages')  // Update port to 5001
       .then(response => {
+        console.log(response)
+        console.log(response.data)
         setMessages(response.data);
       })
       .catch(error => {
@@ -18,18 +19,36 @@ const Chatbot = () => {
       });
   }, []);
 
+  useEffect(() => {
+    document.getElementById( 'message-window' ).scrollTo({ left: 0, top: document.getElementById( 'message-window' ).scrollHeight, behavior: "smooth" });
+  }, [messages]);
+
   const handleSendMessage = async () => {
     if (userInput.trim()) {
-      const response = await axios.post('http://localhost:3000/api/messages', { userMessage: userInput });
+        try {
+            const response = await axios.post('http://localhost:5001/api/messages', {
+                userMessage: userInput,
+            });
 
-      setMessages([...messages, { userMessage: userInput, botReply: response.data.botReply }]);
-      setUserInput('');
+            // Ensure bot's response is added correctly
+            setMessages([...messages, { userMessage: userInput, botReply: response.data.botReply }]);
+            setUserInput('');
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
+    }
+};
+
+
+  const handleInputVal = async (e) => {
+    if(e.key === 'Enter'){
+      handleSendMessage();
     }
   };
 
   return (
     <div style={styles.container}>
-      <div style={styles.chatBox}>
+      <div style={styles.chatBox} id='message-window'>
         <div style={styles.messagesContainer}>
           {messages.map((message, index) => (
             <div key={index} style={styles.message}>
@@ -44,6 +63,7 @@ const Chatbot = () => {
           type="text"
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
+          onKeyUp={handleInputVal}
           style={styles.input}
           placeholder="Type your message..."
         />
@@ -57,7 +77,7 @@ const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
-    height: '100vh',
+    height: '90vh',
     justifyContent: 'space-between',
     backgroundColor: '#f1f1f1',
   },

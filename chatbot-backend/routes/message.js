@@ -2,6 +2,9 @@
 const express = require('express');
 const Message = require('../models/Message');  // Import Message model
 const axios = require('axios');
+
+const db = require('./../db');  // Import the SQLite database connection
+
 const readlineSync = require('readline-sync');
 const qs = require('querystring');
 const marked = require('marked');
@@ -18,21 +21,42 @@ router.post('/', async (req, res) => {
     //const botReply = `Bot received: ${userMessage}`;  // Placeholder logic
 
     // Save the conversation to DB
-    const message = new Message({ userMessage, botReply });
-    await message.save();
+    // const message = new Message({ userMessage, botReply });
+    // await message.save();
 
-    res.json({ userMessage, botReply });
+  
+    const query = `INSERT INTO messages (userMessage, botReply) VALUES (?, ?)`;
+
+    db.run(query, [userMessage, botReply], function (err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        // Send back the response including the generated bot reply
+        res.json({ userMessage, botReply });
+    });
+
+
   } catch (err) {
     console.log(err)
     res.status(400).json({ message: 'Error saving message' });
   }
 });
 
+
 // Route to get all messages
 router.get('/', async (req, res) => {
   try {
-    const messages = await Message.find().sort({ timestamp: 1 });  // Get all messages sorted by timestamp
-    res.status(200).json(messages);  // Respond with the messages
+      const query = `SELECT * FROM messages ORDER BY timestamp asc`;
+
+    db.all(query, [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows);
+    });
+  
+    // const messages = await Message.find().sort({ timestamp: 1 });  // Get all messages sorted by timestamp
+    // res.status(200).json(messages);  // Respond with the messages
   } catch (err) {
     res.status(500).json({ message: 'Error retrieving messages' });
   }
@@ -44,24 +68,24 @@ let userName = 'Guest';
 // Generate a random response based on message type
 function generateResponse(message) {
   const lowerCaseMessage = message.toLowerCase();
-
+ console.log(lowerCaseMessage)
   // Greetings
   if (lowerCaseMessage === "hello" || lowerCaseMessage === "hi") {
     return `Hello, ${userName}! How can I assist you today?`;
   }
-
+  console.log(1)
   // Farewell
   if (lowerCaseMessage.includes("bye")) {
     return `Goodbye, ${userName}! Take care!`;
   }
-
+  console.log(2)
   // Ask for name
   if (lowerCaseMessage.includes("my name is")) {
     const name = message.split("is")[1].trim();
     userName = name;
     return `Nice to meet you, ${name}!`;
   }
-
+  console.log(3)
   // Jokes
   if (lowerCaseMessage.includes("tell me a joke")) {
     return getJoke();
@@ -72,7 +96,7 @@ function generateResponse(message) {
     const location = message.split("in")[1].trim();
     return getWeather(location);
   }
-
+  console.log(4)
   // Default fallback
   //return "Sorry, I didn't understand that. Can you ask something else?";
   return askChatGPT(message);
@@ -104,30 +128,26 @@ async function getWeather(location) {
   }
 }
 
+//you need to generate your api key from this website https://rapidapi.com/Creativesdev/api/free-chatgpt-api/playground/apiendpoint_1c4321d5-2b0d-4ff4-a673-5b2838029196
 
 async function askChatGPT(question) {
-  const apiKey = '0fffdf5239bbe894c317e58062349278'; // Replace with your OpenAI API key
-
-  const defaultModel = 'gpt-3.5-turbo';
-
-  // Uncomment the model you want to use, and comment out the others
-  // const model = 'gpt-4';
-  // const model = 'gpt-4-32k';
-  // const model = 'gpt-3.5-turbo-0125';
-  const model = defaultModel;
-
-  // Build the URL to call
-  const apiUrl = `http://195.179.229.119/gpt/api.php?${qs.stringify({
-    prompt: question,
-    api_key: apiKey,
-    model: model
-  })}`;
+  console.log(question)
+  const options = {
+    method: 'GET',
+    url: 'https://free-chatgpt-api.p.rapidapi.com/chat-completion-one',
+    params: {prompt: question},
+    headers: {
+      'x-rapidapi-key': 'Enter Your Chatgpt Api key here',
+      'x-rapidapi-host': 'free-chatgpt-api.p.rapidapi.com'
+    }
+  };
 
   try {
-    const response = await axios.get(apiUrl);
+    const response = await axios.request(options);
     // Print the response data
-    console.log(marked.marked(response.data.content));
-    return marked.marked(response.data.content);    
+    console.log(response.data);
+    let res = response.data.response.replaceAll('###', '<br>');
+    return marked.marked(res).replaceAll('<code>', '<br><code>').replaceAll('</code>', '</code><br>');    
   } catch (error) {
     console.log(error);
     return 'Sorry, I couldn’t process your request.';
